@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Letter Sounds 4</title>
+<link href="https://fonts.googleapis.com/css2?family=Edu+SA+Beginner:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--brown:#3B2414;--berry:#BC4B51;--apricot:#F4A259;--sage:#5B8E7D;--cream:#FBF3E6;--white:#fff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--cream);color:var(--brown);font-family:'Edu SA Beginner','Comic Sans MS',system-ui,sans-serif;min-height:100vh}
+#app{max-width:520px;margin:0 auto;padding:16px 16px 40px}
+h1{font-size:28px;margin:8px 0;text-align:center;color:var(--berry)}
+.card{background:var(--white);border-radius:24px;padding:20px;box-shadow:0 6px 0 rgba(59,36,20,.12);margin-top:14px;text-align:center}
+.bar{height:14px;background:#EADBC4;border-radius:10px;overflow:hidden;margin:6px 0}
+.bar>i{display:block;height:100%;background:var(--sage);transition:width .3s}
+.sec{font-size:15px;color:var(--sage);font-weight:700;letter-spacing:.5px}
+.q{font-size:22px;margin:8px 0 14px;font-weight:700}
+.big{font-size:84px;line-height:1.1;margin:4px 0}
+.word{font-size:30px;font-weight:700}
+.btn{border:0;border-radius:20px;padding:16px 18px;font-family:inherit;font-size:22px;font-weight:700;color:#fff;background:var(--berry);box-shadow:0 5px 0 #8f3a3f;cursor:pointer;width:100%;margin-top:12px}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 #8f3a3f}
+.btn.sage{background:var(--sage);box-shadow:0 5px 0 #43695b}
+.btn.apr{background:var(--apricot);color:var(--brown);box-shadow:0 5px 0 #c97f33}
+.spk{width:96px;height:96px;border-radius:50%;font-size:44px;border:0;background:var(--apricot);box-shadow:0 6px 0 #c97f33;cursor:pointer}
+.spk:active{transform:translateY(3px)}
+.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.opt{border:0;border-radius:22px;background:#FFF8EC;border:3px solid #EADBC4;font-family:inherit;color:var(--brown);padding:14px 0;cursor:pointer;font-size:56px;font-weight:700;line-height:1}
+.opt small{display:block;font-size:20px;color:#a08a74;margin-top:4px}
+.opt.ok{background:#DDF1E6;border-color:var(--sage)}
+.opt.no{background:#F6D9DA;border-color:var(--berry);opacity:.8}
+.fb{font-size:26px;font-weight:700;margin-top:14px;min-height:34px}
+.fb.ok{color:var(--sage)} .fb.no{color:var(--berry)}
+input[type=text]{width:100%;font-family:inherit;font-size:26px;padding:14px;border-radius:18px;border:3px solid #EADBC4;text-align:center;color:var(--brown);margin-top:12px}
+.code{font-size:22px;background:#FFF8EC;border:3px dashed var(--apricot);border-radius:16px;padding:12px;word-break:break-all;margin-top:10px;direction:ltr}
+.mic{width:110px;height:110px;border-radius:50%;border:0;background:var(--berry);color:#fff;font-size:48px;box-shadow:0 6px 0 #8f3a3f;cursor:pointer}
+.mic.on{background:var(--sage);animation:p 1s infinite}
+@keyframes p{50%{transform:scale(1.08)}}
+.hint{font-size:17px;color:#7a6350;margin-top:8px}
+.stars{font-size:46px}
+a.lnk{display:block;margin-top:14px;color:var(--berry);font-weight:700}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const D = {"id": "P1S4", "title": "Letter Sounds 4", "letters": [{"l": "j", "w": "juice", "e": "🧃", "snd": "juh"}, {"l": "z", "w": "zebra", "e": "🦓", "snd": "zzz"}, {"l": "w", "w": "watch", "e": "⌚", "snd": "wuh"}, {"l": "v", "w": "van", "e": "🚐", "snd": "vvv"}, {"l": "y", "w": "yellow", "e": "🟡", "snd": "yuh"}, {"l": "x", "w": "box", "e": "📦", "snd": "ks", "pos": "end"}, {"l": "q", "w": "queen", "e": "👑", "snd": "kwuh"}]};
+const app = document.getElementById('app');
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const synth = window.speechSynthesis;
+let name = '', qs = [], idx = 0, score = 0, total = 0, wrong = [], tries = 0, recog = null;
+const PRAISE = ['Great job! 🌟','Well done! 👏','Super! 🎉','Excellent! 💪','Yes! 🙌','Perfect! ⭐'];
+const rnd = a => a[Math.floor(Math.random()*a.length)];
+const shuf = a => { a = a.slice(); for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+
+function say(t, rate){
+  try{
+    synth.cancel();
+    const u = new SpeechSynthesisUtterance(t);
+    u.lang = 'en-US'; u.rate = rate || 0.7;
+    const v = (synth.getVoices()||[]).find(v => v.lang && v.lang.toLowerCase().startsWith('en-us')) || (synth.getVoices()||[]).find(v => v.lang && v.lang.startsWith('en'));
+    if (v) u.voice = v;
+    synth.speak(u);
+  }catch(e){}
+}
+function sayLetterSound(L){ say(L.snd, 0.6); }
+function sayWord(L){ say(L.w, 0.7); }
+function sayBoth(L){
+  try{
+    synth.cancel();
+    const a = new SpeechSynthesisUtterance(L.snd); a.lang='en-US'; a.rate=0.6;
+    const b = new SpeechSynthesisUtterance(L.w); b.lang='en-US'; b.rate=0.7;
+    synth.speak(a); synth.speak(b);
+  }catch(e){}
+}
+
+function build(){
+  const L = D.letters;
+  const pick3 = ans => {
+    const others = shuf(L.map(x=>x.l).filter(x=>x!==ans)).slice(0,2);
+    return shuf([ans].concat(others));
+  };
+  const snd = shuf(L).map(x => ({t:'snd', L:x, opts:pick3(x.l)}));
+  const pic = shuf(L).map(x => ({t:'pic', L:x, opts:pick3(x.l)}));
+  const sound_ = shuf(L).map(x => ({t:SR?'sound':'selfsay', L:x}));
+  const say_ = shuf(L).map(x => ({t:SR?'say':'selfsay', L:x}));
+  qs = snd.concat(pic, sound_, say_);
+  total = qs.filter(q => q.t !== 'selfsay').length;
+  idx = 0; score = 0; wrong = [];
+}
+
+function start(){
+  app.innerHTML = `
+    <h1>${D.title}</h1>
+    <div class="card">
+      <div class="big">${D.letters.map(x=>x.l).join(' ')}</div>
+      <div class="q">What is your name?</div>
+      <input id="nm" type="text" placeholder="Type your name" autocomplete="off">
+      <button class="btn" id="go">Start ▶</button>
+      <div class="hint">Turn your phone sound on 🔊</div>
+    </div>
+    <a class="lnk" href="index.html">← All sheets</a>`;
+  document.getElementById('go').onclick = () => {
+    const v = document.getElementById('nm').value.trim();
+    if (!v){ document.getElementById('nm').style.borderColor='#BC4B51'; return; }
+    name = v.replace(/[^A-Za-z\u0600-\u06FF ]/g,'').trim().replace(/ +/g,'-') || 'Student';
+    try{ synth.getVoices(); }catch(e){}
+    build(); show();
+  };
+}
+
+function head(sec){
+  return `<div class="bar"><i style="width:${Math.round(idx/qs.length*100)}%"></i></div>
+          <div class="sec">${sec} · ${idx+1}/${qs.length}</div>`;
+}
+
+function show(){
+  if (idx >= qs.length) return finish();
+  const q = qs[idx];
+  if (q.t === 'snd') return showSnd(q);
+  if (q.t === 'pic') return showPic(q);
+  if (q.t === 'sound') return showSound(q);
+  if (q.t === 'selfsay') return showSelf(q);
+  return showSay(q);
+}
+
+function optsHtml(q){
+  return `<div class="opts">` + q.opts.map(o => `<button class="opt" data-l="${o}">${o}<small>${o.toUpperCase()}</small></button>`).join('') + `</div><div class="fb" id="fb"></div><div id="nx"></div>`;
+}
+
+function wireOpts(q){
+  let done = false;
+  document.querySelectorAll('.opt').forEach(b => {
+    b.onclick = () => {
+      if (done) return; done = true;
+      const ok = b.dataset.l === q.L.l;
+      const fb = document.getElementById('fb');
+      if (ok){ score++; b.classList.add('ok'); fb.className='fb ok'; fb.textContent = rnd(PRAISE); }
+      else {
+        b.classList.add('no'); wrong.push(q.L.l);
+        document.querySelectorAll('.opt').forEach(x => { if (x.dataset.l === q.L.l) x.classList.add('ok'); });
+        fb.className='fb no'; fb.textContent = 'The answer is  ' + q.L.l;
+        sayBoth(q.L);
+      }
+      document.getElementById('nx').innerHTML = `<button class="btn sage" id="next">Next ▶</button>`;
+      document.getElementById('next').onclick = () => { idx++; show(); };
+    };
+  });
+}
+
+function showSnd(q){
+  app.innerHTML = `${head('LISTEN')}
+    <div class="card">
+      <div class="q">Listen. Which letter makes this sound?</div>
+      <button class="spk" id="sp">🔊</button>
+      ${optsHtml(q)}
+    </div>`;
+  document.getElementById('sp').onclick = () => sayLetterSound(q.L);
+  setTimeout(() => sayLetterSound(q.L), 350);
+  wireOpts(q);
+}
+
+function showPic(q){
+  const where = q.L.pos === 'end' ? 'END' : 'START';
+  app.innerHTML = `${head('PICTURE')}
+    <div class="card">
+      <div class="big">${q.L.e}</div>
+      <div class="word">${q.L.w} <button class="spk" style="width:54px;height:54px;font-size:26px;vertical-align:middle" id="sp">🔊</button></div>
+      <div class="q" style="margin-top:10px">Which letter does it ${where} with?</div>
+      ${optsHtml(q)}
+    </div>`;
+  document.getElementById('sp').onclick = () => sayWord(q.L);
+  setTimeout(() => sayWord(q.L), 350);
+  wireOpts(q);
+}
+
+function norm(s){ return (s||'').toLowerCase().replace(/[^a-z ]/g,' ').replace(/ +/g,' ').trim(); }
+function matches(L, alts){
+  const targets = [L.w].concat(L.alt || []);
+  for (const a of alts){
+    const n = norm(a); const words = n.split(' ');
+    for (const t of targets){ if (words.indexOf(t) >= 0) return true; }
+  }
+  return false;
+}
+
+function matchesSound(L, alts){
+  const l = L.l, snd = L.snd.replace(/[^a-z]/g,'');
+  for (const a of alts){
+    const words = norm(a).split(' ').filter(Boolean);
+    for (const w of words){
+      if (w === l || w === snd) return true;
+      if (w.length <= 5 && w[0] === l) return true;
+      if (w === L.w || (L.alt||[]).indexOf(w) >= 0) return true;
+    }
+    const joined = norm(a).replace(/ /g,'');
+    if (joined.length <= 8 && joined[0] === l) return true;
+  }
+  return false;
+}
+
+function showSound(q){
+  tries = 0;
+  app.innerHTML = `${head('SOUND')}
+    <div class="card">
+      <div class="big" style="font-size:96px">${q.L.l.toUpperCase()}${q.L.l}</div>
+      <div class="q">Say only the SOUND of this letter</div>
+      <button class="btn apr" id="mdl">🔊 Listen first</button>
+      <div style="margin-top:16px"><button class="mic" id="mic">🎤</button></div>
+      <div class="hint" id="hint">Tap the microphone and say the sound</div>
+      <div class="fb" id="fb"></div><div id="nx"></div>
+    </div>`;
+  document.getElementById('mdl').onclick = () => sayLetterSound(q.L);
+  document.getElementById('mic').onclick = () => listen(q);
+}
+
+function showSelf(q){
+  idx++; show();
+}
+
+function showSay(q){
+  tries = 0;
+  const where = q.L.pos === 'end' ? ' (the sound is at the end)' : '';
+  app.innerHTML = `${head('SPEAK')}
+    <div class="card">
+      <div class="big">${q.L.e}</div>
+      <div class="word">${q.L.l.toUpperCase()}${q.L.l} — ${q.L.w}</div>
+      <div class="q" style="margin-top:10px">Say the sound, then the word:<br><span style="color:var(--berry)">${q.L.snd} … ${q.L.w}</span></div>
+      <button class="btn apr" id="mdl">🔊 Listen first</button>
+      <div style="margin-top:16px"><button class="mic" id="mic">🎤</button></div>
+      <div class="hint" id="hint">Tap the microphone and speak${where}</div>
+      <div class="fb" id="fb"></div><div id="nx"></div>
+    </div>`;
+  document.getElementById('mdl').onclick = () => sayBoth(q.L);
+  document.getElementById('mic').onclick = () => listen(q);
+}
+
+function endSay(q, ok){
+  const fb = document.getElementById('fb');
+  if (ok){ score++; fb.className='fb ok'; fb.textContent = rnd(PRAISE); }
+  else { wrong.push(q.L.l + (q.t==='sound'?'(sound)':'(say)')); fb.className='fb no'; fb.textContent = 'Listen again and keep practicing!'; if (q.t==='sound') sayLetterSound(q.L); else sayBoth(q.L); }
+  document.getElementById('nx').innerHTML = `<button class="btn sage" id="next">Next ▶</button>`;
+  document.getElementById('next').onclick = () => { idx++; show(); };
+}
+
+function listen(q){
+  const mic = document.getElementById('mic'), hint = document.getElementById('hint'), fb = document.getElementById('fb');
+  try{ synth.cancel(); }catch(e){}
+  if (recog){ try{ recog.abort(); }catch(e){} }
+  recog = new SR();
+  recog.lang = 'en-US'; recog.interimResults = false; recog.maxAlternatives = 6; recog.continuous = false;
+  let got = false;
+  recog.onstart = () => { mic.classList.add('on'); hint.textContent = 'Listening… speak now 👂'; fb.textContent=''; };
+  recog.onerror = e => {
+    mic.classList.remove('on');
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed'){ hint.textContent = 'Please allow the microphone, then try again.'; }
+    else if (e.error === 'no-speech'){ hint.textContent = 'I did not hear you. Try again 🎤'; }
+    else { hint.textContent = 'Try again 🎤'; }
+  };
+  recog.onresult = ev => {
+    got = true;
+    const alts = []; for (let i=0;i<ev.results[0].length;i++) alts.push(ev.results[0][i].transcript);
+    const ok = q.t === 'sound' ? matchesSound(q.L, alts) : matches(q.L, alts);
+    tries++;
+    if (ok){ mic.classList.remove('on'); mic.disabled = true; endSay(q, true); }
+    else if (tries >= 3){ mic.classList.remove('on'); mic.disabled = true; endSay(q, false); }
+    else { fb.className='fb no'; fb.textContent = 'Not yet — try again (' + tries + '/3)'; hint.textContent = q.t === 'sound' ? 'Tap 🎤 and say the sound again' : 'Tap 🎤 and say: ' + q.L.snd + ' … ' + q.L.w; }
+  };
+  recog.onend = () => { mic.classList.remove('on'); };
+  try{ recog.start(); }catch(e){ hint.textContent = 'Tap the microphone again.'; }
+}
+
+function showSelfSay(q){}
+
+function finish(){
+  const pct = total ? score/total : 0;
+  const stars = pct >= .9 ? '⭐⭐⭐' : pct >= .6 ? '⭐⭐' : '⭐';
+  const code = `${D.id}-${score}/${total}-${name}`;
+  app.innerHTML = `
+    <h1>${D.title}</h1>
+    <div class="card">
+      <div class="stars">${stars}</div>
+      <div class="big" style="font-size:64px">${score} / ${total}</div>
+      <div class="q">${pct>=.9?'Amazing! 🎉':pct>=.6?'Good work! 👍':'Keep practicing! 💪'}</div>
+      <div class="hint">Show this code to your teacher:</div>
+      <div class="code" id="cd">${code}</div>
+      <button class="btn apr" id="cp">Copy code 📋</button>
+      <button class="btn sage" id="again">Try again 🔄</button>
+    </div>
+    <a class="lnk" href="index.html">← All sheets</a>`;
+  document.getElementById('again').onclick = () => { build(); show(); };
+  document.getElementById('cp').onclick = () => {
+    const done = () => { document.getElementById('cp').textContent = 'Copied ✔'; };
+    try{ navigator.clipboard.writeText(code).then(done, done); }catch(e){ done(); }
+  };
+}
+
+start();
+</script>
+</body>
+</html>
